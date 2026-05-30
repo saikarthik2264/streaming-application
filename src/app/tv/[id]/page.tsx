@@ -34,6 +34,8 @@ export default function TVDetailPage({ params }: { params: Promise<{ id: string 
         const s = await getTVDetail(id);
         setShow(s);
         addToHistory(s);
+        if (s.number_of_seasons) setNumSeasons(s.number_of_seasons);
+        if (s.episodes_per_season) setEpisodesPerSeason(s.episodes_per_season);
         const sim = await getSimilarTVShows(id);
         setSimilar(sim);
         if (searchParams.get("resume") === "true") setPlaying(true);

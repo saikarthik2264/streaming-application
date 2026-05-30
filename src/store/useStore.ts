@@ -18,6 +18,8 @@ export interface CatalogItem {
   cast?: string[];
   backdropUrl?: string; // absolute or Unsplash fallback
   posterUrl?: string;
+  number_of_seasons?: number;
+  episodes_per_season?: number;
 }
 
 export interface PlaybackProgress {

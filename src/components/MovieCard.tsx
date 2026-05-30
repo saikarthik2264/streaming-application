@@ -18,9 +18,9 @@ export default function MovieCard({ item }: { item: CatalogItem }) {
     >
       {/* Poster */}
       <div className="aspect-[2/3] bg-[#181818] relative overflow-hidden rounded-lg shadow-lg shadow-black/60 group-hover:shadow-xl group-hover:shadow-red-950/20 transition-shadow duration-300 border border-white/[0.04] group-hover:border-white/10">
-        {!imgError ? (
+        {!imgError && item.posterUrl ? (
           <img
-            src={item.posterUrl || ""}
+            src={item.posterUrl}
             alt={item.title}
             className="w-full h-full object-cover"
             loading="lazy"

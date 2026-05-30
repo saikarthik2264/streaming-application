@@ -30,10 +30,46 @@ export const TV_SHOWS: CatalogItem[] = [
   { id: 66732, imdbId: "tt4574334", title: "Stranger Things", name: "Stranger Things", type: "tv", backdrop_path: "", poster_path: "", overview: "When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces, and one strange little girl.", vote_average: 8.6, first_air_date: "2016-07-15", genres: ["Sci-Fi", "Drama", "Thriller"], runtime: "50m", cast: ["Millie Bobby Brown", "Finn Wolfhard", "Winona Ryder", "David Harbour"], posterUrl: "https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg", backdropUrl: "https://image.tmdb.org/t/p/original/56v2Kj2qLz3289PtZJ6pVgX86tq.jpg", release_date: "" },
   { id: 76479, imdbId: "tt1190634", title: "The Boys", name: "The Boys", type: "tv", backdrop_path: "", poster_path: "", overview: "A group of vigilantes set out to take down corrupt superheroes who abuse their superpowers. In a world where superheroes embrace the darker side of their massive celebrity.", vote_average: 8.5, first_air_date: "2019-07-26", genres: ["Action", "Sci-Fi", "Crime"], runtime: "60m", cast: ["Karl Urban", "Jack Quaid", "Antony Starr", "Erin Moriarty"], posterUrl: "https://image.tmdb.org/t/p/w500/2zmTngn1tYC1AvfnrFLhxeD82hz.jpg", backdropUrl: "https://image.tmdb.org/t/p/original/7Ns6tO3aYjppI5bFhyYkv5IGs0c.jpg", release_date: "" },
   { id: 72680, imdbId: "tt5753856", title: "Dark", name: "Dark", type: "tv", backdrop_path: "", poster_path: "", overview: "A missing child sets four families on a frantic hunt for answers as they unearth a mind-bending mystery that spans three generations in a small German town.", vote_average: 8.7, first_air_date: "2017-12-01", genres: ["Sci-Fi", "Drama", "Thriller"], runtime: "60m", cast: ["Louis Hofmann", "Oliver Masucci", "Jördis Triebel", "Lisa Vicari"], posterUrl: "https://image.tmdb.org/t/p/w500/5Lo5KcP3N62jF5BH9jNzi8N4xj5.jpg", backdropUrl: "https://image.tmdb.org/t/p/original/3lBDg3i6nn5R2NKFCJ6oKyUo2N5.jpg", release_date: "" },
+  {
+    id: 9813792,
+    imdbId: "tt9813792",
+    title: "From",
+    name: "From",
+    type: "tv",
+    backdrop_path: "",
+    poster_path: "/uJdETP7K4LkM4s8D6H4u7lJ6d3n.jpg",
+    overview: "A mysterious town traps everyone who enters. Residents struggle to survive while uncovering the secrets of the town and the terrifying creatures that emerge at night.",
+    vote_average: 8.4,
+    first_air_date: "2022-02-20",
+    genres: ["Horror", "Mystery", "Sci-Fi", "Thriller"],
+    runtime: "52m",
+    cast: ["Harold Perrineau", "Catalina Sandino Moreno", "Eion Bailey", "David Alpay"],
+    posterUrl: "",
+    backdropUrl: "",
+    release_date: "",
+    number_of_seasons: 3,
+  }
 ];
 
+export function resolveCatalogPoster(item: CatalogItem): CatalogItem {
+  if (item.imdbId === "tt9813792" || item.id === 9813792) {
+    const returnedTitle = item.name || item.title || "";
+    let posterUrl = item.posterUrl;
+    let backdropUrl = item.backdropUrl;
+    if (returnedTitle === "From") {
+      posterUrl = "https://image.tmdb.org/t/p/original/jfw5WoRnPGJQrDdaSOB5QqpjytC.jpg";
+      backdropUrl = "https://image.tmdb.org/t/p/original/jfw5WoRnPGJQrDdaSOB5QqpjytC.jpg";
+    } else {
+      posterUrl = "/posters/from.jpg";
+      backdropUrl = "/posters/from.jpg";
+    }
+    return { ...item, posterUrl, backdropUrl };
+  }
+  return item;
+}
+
 export function generateCatalog(): CatalogItem[] {
-  return [...MOVIES, ...TV_SHOWS];
+  return [...MOVIES, ...TV_SHOWS].map(resolveCatalogPoster);
 }
 
 export interface RowCategory {
@@ -43,16 +79,24 @@ export interface RowCategory {
 }
 
 export function getCategoryRows(): RowCategory[] {
+  const resolvedMovies = MOVIES.map(resolveCatalogPoster);
+  const resolvedTVShows = TV_SHOWS.map(resolveCatalogPoster);
+  const resolvedAll = [...resolvedMovies, ...resolvedTVShows];
+
   const rows: RowCategory[] = [];
 
-  rows.push({ title: "Trending Movies", items: MOVIES.filter(m => m.vote_average >= 8.0), type: "movie" });
-  rows.push({ title: "Top Rated Movies", items: [...MOVIES].sort((a, b) => b.vote_average - a.vote_average).slice(0, 10), type: "movie" });
-  rows.push({ title: "Sci-Fi Movies", items: MOVIES.filter(m => m.genres.includes("Sci-Fi")), type: "movie" });
-  rows.push({ title: "Action Movies", items: MOVIES.filter(m => m.genres.includes("Action")), type: "movie" });
-  rows.push({ title: "Animation Movies", items: MOVIES.filter(m => m.genres.includes("Animation")), type: "movie" });
-  rows.push({ title: "Drama Movies", items: MOVIES.filter(m => m.genres.includes("Drama")), type: "movie" });
-  rows.push({ title: "Trending TV Shows", items: TV_SHOWS.filter(t => t.vote_average >= 8.4), type: "tv" });
-  rows.push({ title: "Popular TV Shows", items: TV_SHOWS, type: "tv" });
+  rows.push({ title: "Trending Movies", items: resolvedMovies.filter(m => m.vote_average >= 8.0), type: "movie" });
+  rows.push({ title: "Top Rated Movies", items: [...resolvedMovies].sort((a, b) => b.vote_average - a.vote_average).slice(0, 10), type: "movie" });
+  rows.push({ title: "Sci-Fi Movies", items: resolvedMovies.filter(m => m.genres.includes("Sci-Fi")), type: "movie" });
+  rows.push({ title: "Action Movies", items: resolvedMovies.filter(m => m.genres.includes("Action")), type: "movie" });
+  rows.push({ title: "Animation Movies", items: resolvedMovies.filter(m => m.genres.includes("Animation")), type: "movie" });
+  rows.push({ title: "Drama Movies", items: resolvedMovies.filter(m => m.genres.includes("Drama")), type: "movie" });
+  rows.push({ title: "Trending TV Shows", items: resolvedTVShows.filter(t => t.vote_average >= 8.4), type: "tv" });
+  rows.push({ title: "Popular TV Shows", items: resolvedTVShows, type: "tv" });
+  rows.push({ title: "Popular Series", items: resolvedTVShows, type: "tv" });
+  rows.push({ title: "Horror", items: resolvedAll.filter(i => i.genres.includes("Horror")), type: "mixed" });
+  rows.push({ title: "Mystery", items: resolvedAll.filter(i => i.genres.includes("Mystery")), type: "mixed" });
+  rows.push({ title: "Sci-Fi", items: resolvedAll.filter(i => i.genres.includes("Sci-Fi")), type: "mixed" });
 
   return rows;
 }

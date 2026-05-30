@@ -2,16 +2,29 @@ import { CatalogItem } from "@/store/useStore";
 
 // Helper to convert TMDB payload format back into Zustand/Store CatalogItem format
 function fromTmdbFormat(item: any, type: "movie" | "tv"): CatalogItem {
-  // If the payload already has preloaded Unsplash absolute URLs, preserve them!
-  const backdropUrl = item.backdropUrl || (item.backdrop_path ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}` : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200&auto=format&fit=crop");
-  const posterUrl = item.posterUrl || (item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=600&auto=format&fit=crop");
+  let backdropUrl = item.backdropUrl;
+  let posterUrl = item.posterUrl;
+  const imdbId = item.imdb_id || item.imdbId || `tt${item.id}`;
+  if (imdbId === "tt9813792" || item.id === 9813792) {
+    const returnedTitle = item.name || item.title || "";
+    if (returnedTitle === "From") {
+      posterUrl = "https://image.tmdb.org/t/p/original/jfw5WoRnPGJQrDdaSOB5QqpjytC.jpg";
+      backdropUrl = "https://image.tmdb.org/t/p/original/jfw5WoRnPGJQrDdaSOB5QqpjytC.jpg";
+    } else {
+      posterUrl = "/posters/from.jpg";
+      backdropUrl = "/posters/from.jpg";
+    }
+  } else {
+    backdropUrl = backdropUrl || (item.backdrop_path ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}` : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200&auto=format&fit=crop");
+    posterUrl = posterUrl || (item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=600&auto=format&fit=crop");
+  }
 
   const releaseDate = item.release_date || item.first_air_date || "";
   const title = item.title || item.name || "Untitled Production";
 
   return {
     id: item.id,
-    imdbId: item.imdb_id || item.imdbId || `tt${item.id}`,
+    imdbId,
     title,
     name: item.name || title,
     type,
@@ -25,7 +38,9 @@ function fromTmdbFormat(item: any, type: "movie" | "tv"): CatalogItem {
     runtime: item.runtime ? `${item.runtime}m` : undefined,
     cast: item.credits?.cast ? item.credits.cast.map((c: any) => c.name).slice(0, 5) : [],
     backdropUrl,
-    posterUrl
+    posterUrl,
+    number_of_seasons: item.number_of_seasons,
+    episodes_per_season: item.episodes_per_season || (item.seasons?.[0]?.episode_count)
   };
 }
 
