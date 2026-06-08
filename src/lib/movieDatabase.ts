@@ -78,10 +78,11 @@ export interface DbStats {
 }
 
 // ─── Paths ───────────────────────────────────────────────────────────
-const DATA_DIR = path.join(process.cwd(), "src", "data");
+const DATA_DIR = process.env.PERSISTENT_DATA_DIR || path.join(process.cwd(), "src", "data");
 const MOVIES_PATH = path.join(DATA_DIR, "db_movies.json");
 const COLLECTIONS_PATH = path.join(DATA_DIR, "db_collections.json");
 const SYNC_LOG_PATH = path.join(DATA_DIR, "db_sync_log.json");
+
 
 // ─── In-Memory Store ─────────────────────────────────────────────────
 let moviesMap: Map<number, DbMovie> = new Map();
