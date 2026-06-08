@@ -41,5 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 # local database files
-src/data/db_*.json
+src/data/db_sync_log.json
+
 
