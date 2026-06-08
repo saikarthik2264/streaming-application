@@ -20,6 +20,7 @@ export interface CatalogItem {
   posterUrl?: string;
   seasons?: { season_number: number; episode_count: number; name: string }[];
   number_of_seasons?: number;
+  episodes_per_season?: number;
   collection?: {
     id: number | string;
     name: string;
@@ -27,6 +28,7 @@ export interface CatalogItem {
     poster_path?: string;
     backdrop_path?: string;
   };
+
 }
 
 export interface PlaybackProgress {

@@ -435,6 +435,18 @@ function handleMockFallback(
 }
 
 function toResult(item: CatalogItem) {
+  let posterUrl = item.posterUrl;
+  let backdropUrl = item.backdropUrl;
+  if (item.imdbId === "tt9813792" || item.id === 9813792) {
+    const returnedTitle = item.name || item.title || "";
+    if (returnedTitle === "From") {
+      posterUrl = "https://image.tmdb.org/t/p/original/jfw5WoRnPGJQrDdaSOB5QqpjytC.jpg";
+      backdropUrl = "https://image.tmdb.org/t/p/original/jfw5WoRnPGJQrDdaSOB5QqpjytC.jpg";
+    } else {
+      posterUrl = "/posters/from.jpg";
+      backdropUrl = "/posters/from.jpg";
+    }
+  }
   return {
     id: item.id,
     title: item.title,
@@ -446,12 +458,24 @@ function toResult(item: CatalogItem) {
     first_air_date: item.first_air_date || "",
     backdrop_path: item.backdrop_path,
     poster_path: item.poster_path,
-    posterUrl: item.posterUrl,
-    backdropUrl: item.backdropUrl
+    posterUrl,
+    backdropUrl
   };
 }
 
 function toDetail(item: CatalogItem) {
+  let posterUrl = item.posterUrl;
+  let backdropUrl = item.backdropUrl;
+  if (item.imdbId === "tt9813792" || item.id === 9813792) {
+    const returnedTitle = item.name || item.title || "";
+    if (returnedTitle === "From") {
+      posterUrl = "https://image.tmdb.org/t/p/original/jfw5WoRnPGJQrDdaSOB5QqpjytC.jpg";
+      backdropUrl = "https://image.tmdb.org/t/p/original/jfw5WoRnPGJQrDdaSOB5QqpjytC.jpg";
+    } else {
+      posterUrl = "/posters/from.jpg";
+      backdropUrl = "/posters/from.jpg";
+    }
+  }
   return {
     id: item.id,
     imdb_id: item.imdbId,
@@ -464,12 +488,33 @@ function toDetail(item: CatalogItem) {
     credits: {
       cast: (item.cast || []).map((n, i) => ({ id: i, name: n, character: `Role ${i+1}`, profile_path: null }))
     },
-    posterUrl: item.posterUrl,
-    backdropUrl: item.backdropUrl
+    posterUrl,
+    backdropUrl
   };
 }
 
 function toTVDetail(item: CatalogItem) {
+  const number_of_seasons = item.seasons?.length || item.number_of_seasons || 5;
+  const episodes_per_season = item.episodes_per_season || 10;
+  const seasonsData = item.seasons || Array.from({ length: number_of_seasons }, (_, i) => i + 1).map(s => ({
+    id: s,
+    season_number: s,
+    episode_count: episodes_per_season,
+    name: `Season ${s}`
+  }));
+  let posterUrl = item.posterUrl;
+  let backdropUrl = item.backdropUrl;
+  if (item.imdbId === "tt9813792" || item.id === 9813792) {
+    const returnedTitle = item.name || item.title || "";
+    if (returnedTitle === "From") {
+      posterUrl = "https://image.tmdb.org/t/p/original/jfw5WoRnPGJQrDdaSOB5QqpjytC.jpg";
+      backdropUrl = "https://image.tmdb.org/t/p/original/jfw5WoRnPGJQrDdaSOB5QqpjytC.jpg";
+    } else {
+      posterUrl = "/posters/from.jpg";
+      backdropUrl = "/posters/from.jpg";
+    }
+  }
+
   return {
     id: item.id,
     imdb_id: item.imdbId,
@@ -478,13 +523,13 @@ function toTVDetail(item: CatalogItem) {
     vote_average: item.vote_average,
     first_air_date: item.first_air_date,
     genres: item.genres.map((n, i) => ({ id: i, name: n })),
-    number_of_seasons: 5,
-    seasons: [1,2,3,4,5].map(s => ({ id: s, season_number: s, episode_count: 10, name: `Season ${s}` })),
+    number_of_seasons,
+    seasons: seasonsData,
     credits: {
       cast: (item.cast || []).map((n, i) => ({ id: i, name: n, character: `Role ${i+1}`, profile_path: null }))
     },
-    posterUrl: item.posterUrl,
-    backdropUrl: item.backdropUrl
+    posterUrl,
+    backdropUrl
   };
 }
 
