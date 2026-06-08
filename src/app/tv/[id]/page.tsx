@@ -2,7 +2,7 @@
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Play, Plus, Check, Star, ArrowLeft, Maximize2, Minimize2 } from "lucide-react";
+import { Play, Plus, Check, Star, ArrowLeft, Maximize2, Minimize2, Heart } from "lucide-react";
 import MovieRow from "@/components/MovieRow";
 import ClickShield from "@/components/ClickShield";
 import { getTVDetail, getSimilarTVShows } from "@/lib/tmdb";
@@ -21,11 +21,20 @@ export default function TVDetailPage({ params }: { params: Promise<{ id: string 
   const [episode, setEpisode] = useState(1);
   const [numSeasons, setNumSeasons] = useState(5);
   const [episodesPerSeason, setEpisodesPerSeason] = useState(10);
+  const [activeServer, setActiveServer] = useState(0);
 
+  const [mounted, setMounted] = useState(false);
   const addToHistory = useStore(s => s.addToHistory);
   const toggleWatchlist = useStore(s => s.toggleWatchlist);
   const isInWatchlist = useStore(s => s.isInWatchlist);
   const savePlaybackProgress = useStore(s => s.savePlaybackProgress);
+  const getPlaybackProgress = useStore(s => s.getPlaybackProgress);
+  const toggleFavorite = useStore(s => s.toggleFavorite);
+  const isInFavorites = useStore(s => s.isInFavorites);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -34,6 +43,17 @@ export default function TVDetailPage({ params }: { params: Promise<{ id: string 
         const s = await getTVDetail(id);
         setShow(s);
         addToHistory(s);
+        if (s.number_of_seasons) {
+          setNumSeasons(s.number_of_seasons);
+        }
+
+        // Restore playback progress if available
+        const progress = getPlaybackProgress(id);
+        if (progress && progress.season && progress.episode) {
+          setSeason(progress.season);
+          setEpisode(progress.episode);
+        }
+
         const sim = await getSimilarTVShows(id);
         setSimilar(sim);
         if (searchParams.get("resume") === "true") setPlaying(true);
@@ -41,6 +61,17 @@ export default function TVDetailPage({ params }: { params: Promise<{ id: string 
       finally { setLoading(false); }
     })();
   }, [id]);
+
+  // Dynamically set episode count depending on selected season details
+  useEffect(() => {
+    if (!show || !show.seasons) return;
+    const currentSeasonDetails = show.seasons.find(s => s.season_number === season);
+    if (currentSeasonDetails) {
+      setEpisodesPerSeason(currentSeasonDetails.episode_count || 10);
+    } else {
+      setEpisodesPerSeason(10);
+    }
+  }, [season, show]);
 
   useEffect(() => {
     if (!playing || !show) return;
@@ -52,8 +83,17 @@ export default function TVDetailPage({ params }: { params: Promise<{ id: string 
   if (loading) return <div className="h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" /></div>;
   if (!show) return <div className="flex flex-col items-center justify-center gap-4 py-32"><h2 className="text-xl font-bold text-red-500">Show Not Found</h2><Link href="/" className="bg-red-600 px-6 py-2 rounded-md font-bold text-sm">Home</Link></div>;
 
-  const isBookmarked = isInWatchlist(show.id);
-  const streamUrl = `https://vidfast.pro/tv/${show.imdbId}/${season}/${episode}?autoPlay=true&nextButton=true&autoNext=true`;
+  const isBookmarked = mounted ? isInWatchlist(show.id) : false;
+  const isFavorited = mounted ? isInFavorites(show.id) : false;
+
+  const SERVERS = [
+    { name: "Server 1 (VidFast)", url: `https://vidfast.pro/tv/${show.imdbId || show.id}/${season}/${episode}?autoPlay=true&nextButton=true&autoNext=true` },
+    { name: "Server 2 (VidLink)", url: `https://vidlink.pro/tv/${show.id}/${season}/${episode}?primaryColor=e50914` },
+    { name: "Server 3 (VidSrc.to)", url: `https://vidsrc.to/embed/tv/${show.id}/${season}/${episode}` },
+    { name: "Server 4 (VidSrc.me)", url: `https://vidsrc.me/embed/tv?tmdb=${show.id}&season=${season}&episode=${episode}` }
+  ];
+
+  const streamUrl = SERVERS[activeServer].url;
 
   const playEpisode = (s: number, ep: number) => { setSeason(s); setEpisode(ep); setPlaying(true); };
 
@@ -65,12 +105,29 @@ export default function TVDetailPage({ params }: { params: Promise<{ id: string 
 
       <div className={`${theater ? "w-full" : "max-w-[1400px] mx-auto w-full px-6 sm:px-12"}`}>
         {playing ? (
-          <div className={`relative bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5 ${theater ? "h-[85vh] rounded-none" : "aspect-video"}`}>
-            <iframe src={streamUrl} className="w-full h-full border-none" allowFullScreen allow="autoplay; fullscreen" referrerPolicy="no-referrer" />
-            <ClickShield />
-            <button onClick={() => setTheater(!theater)} className="absolute top-3 right-3 z-30 bg-black/60 p-2 rounded-lg text-white/70 hover:text-white cursor-pointer border border-white/10">
-              {theater ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
+          <div className="flex flex-col gap-4 animate-fade-in">
+            <div className={`relative bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5 ${theater ? "h-[85vh] rounded-none" : "aspect-video"}`}>
+              <iframe src={streamUrl} className="w-full h-full border-none" allowFullScreen allow="autoplay; fullscreen" referrerPolicy="no-referrer" />
+              <ClickShield />
+              <button onClick={() => setTheater(!theater)} className="absolute top-3 right-3 z-30 bg-black/60 p-2 rounded-lg text-white/70 hover:text-white cursor-pointer border border-white/10">
+                {theater ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+            </div>
+            {/* Server Switcher */}
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-bold uppercase text-white/40 tracking-wider">Streaming Server</span>
+                <span className="text-xs text-white/60">If video fails to load, try switching servers.</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {SERVERS.map((srv, idx) => (
+                  <button key={idx} onClick={() => setActiveServer(idx)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${activeServer === idx ? "bg-[#e50914] text-white" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"}`}>
+                    {srv.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="relative aspect-video sm:aspect-[21/9] rounded-xl overflow-hidden border border-white/5 group shadow-2xl">
@@ -101,12 +158,21 @@ export default function TVDetailPage({ params }: { params: Promise<{ id: string 
 
           {/* Season selector */}
           <div className="flex items-center gap-2 mt-4 overflow-x-auto hide-scrollbar border-b border-white/5 pb-2">
-            {Array.from({ length: numSeasons }, (_, i) => i + 1).map(s => (
-              <button key={s} onClick={() => { setSeason(s); setEpisode(1); }}
-                className={`text-sm font-semibold px-4 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap ${season === s ? "bg-white text-black" : "text-white/50 hover:text-white hover:bg-white/5"}`}>
-                Season {s}
-              </button>
-            ))}
+            {show.seasons && show.seasons.filter(s => s.season_number > 0).length > 0 ? (
+              show.seasons.filter(s => s.season_number > 0).map(s => (
+                <button key={s.season_number} onClick={() => { setSeason(s.season_number); setEpisode(1); }}
+                  className={`text-sm font-semibold px-4 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap ${season === s.season_number ? "bg-white text-black" : "text-white/50 hover:text-white hover:bg-white/5"}`}>
+                  {s.name || `Season ${s.season_number}`}
+                </button>
+              ))
+            ) : (
+              Array.from({ length: numSeasons }, (_, i) => i + 1).map(s => (
+                <button key={s} onClick={() => { setSeason(s); setEpisode(1); }}
+                  className={`text-sm font-semibold px-4 py-1.5 rounded-md transition-all cursor-pointer whitespace-nowrap ${season === s ? "bg-white text-black" : "text-white/50 hover:text-white hover:bg-white/5"}`}>
+                  Season {s}
+                </button>
+              ))
+            )}
           </div>
 
           {/* Episode grid */}
@@ -136,10 +202,16 @@ export default function TVDetailPage({ params }: { params: Promise<{ id: string 
               <Play size={16} fill="currentColor" /> Watch S{season} E{episode}
             </button>
           )}
-          <button onClick={() => toggleWatchlist(show)} className={`w-full flex items-center justify-center gap-2 font-semibold py-3 rounded-lg transition-all text-sm cursor-pointer ${isBookmarked ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/15"}`}>
-            {isBookmarked ? <Check size={16} strokeWidth={3} /> : <Plus size={16} />}
-            {isBookmarked ? "In Watchlist" : "Add to Watchlist"}
-          </button>
+            <div className="flex gap-2">
+              <button onClick={() => toggleWatchlist(show)} className={`flex-1 flex items-center justify-center gap-2 font-semibold py-3 rounded-lg transition-all text-xs cursor-pointer ${isBookmarked ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/15"}`}>
+                {isBookmarked ? <Check size={14} strokeWidth={3} /> : <Plus size={14} />}
+                {isBookmarked ? "Watchlisted" : "Watchlist"}
+              </button>
+              <button onClick={() => toggleFavorite(show)} className={`flex-1 flex items-center justify-center gap-2 font-semibold py-3 rounded-lg transition-all text-xs cursor-pointer ${isFavorited ? "bg-red-600 text-white" : "bg-white/10 text-white hover:bg-white/15"}`}>
+                <Heart size={14} fill={isFavorited ? "currentColor" : "none"} className={isFavorited ? "scale-110" : ""} />
+                {isFavorited ? "Liked" : "Favorite"}
+              </button>
+            </div>
         </div>
       </div>
 

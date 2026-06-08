@@ -2,7 +2,7 @@
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Play, Plus, Check, Star, Clock, ArrowLeft, Maximize2, Minimize2 } from "lucide-react";
+import { Play, Plus, Check, Star, Clock, ArrowLeft, Maximize2, Minimize2, Heart } from "lucide-react";
 import MovieRow from "@/components/MovieRow";
 import ClickShield from "@/components/ClickShield";
 import { getMovieDetail, getSimilarMovies } from "@/lib/tmdb";
@@ -17,11 +17,19 @@ export default function MovieDetailPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [theater, setTheater] = useState(false);
+  const [activeServer, setActiveServer] = useState(0);
 
+  const [mounted, setMounted] = useState(false);
   const addToHistory = useStore(s => s.addToHistory);
   const toggleWatchlist = useStore(s => s.toggleWatchlist);
   const isInWatchlist = useStore(s => s.isInWatchlist);
   const savePlaybackProgress = useStore(s => s.savePlaybackProgress);
+  const toggleFavorite = useStore(s => s.toggleFavorite);
+  const isInFavorites = useStore(s => s.isInFavorites);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -51,8 +59,17 @@ export default function MovieDetailPage({ params }: { params: Promise<{ id: stri
   if (loading) return <div className="h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" /></div>;
   if (!movie) return <div className="flex flex-col items-center justify-center gap-4 py-32"><h2 className="text-xl font-bold text-red-500">Movie Not Found</h2><Link href="/" className="bg-red-600 px-6 py-2 rounded-md font-bold text-sm">Home</Link></div>;
 
-  const isBookmarked = isInWatchlist(movie.id);
-  const streamUrl = `https://vidfast.pro/movie/${movie.imdbId}?autoPlay=true&theme=E50914`;
+  const isBookmarked = mounted ? isInWatchlist(movie.id) : false;
+  const isFavorited = mounted ? isInFavorites(movie.id) : false;
+
+  const SERVERS = [
+    { name: "Server 1 (VidFast)", url: `https://vidfast.pro/movie/${movie.imdbId || movie.id}?autoPlay=true&theme=E50914` },
+    { name: "Server 2 (VidLink)", url: `https://vidlink.pro/movie/${movie.id}?primaryColor=e50914` },
+    { name: "Server 3 (VidSrc.to)", url: `https://vidsrc.to/embed/movie/${movie.id}` },
+    { name: "Server 4 (VidSrc.me)", url: `https://vidsrc.me/embed/movie?tmdb=${movie.id}` }
+  ];
+
+  const streamUrl = SERVERS[activeServer].url;
 
   return (
     <div className="flex flex-col gap-8 pb-16 animate-fade-in">
@@ -63,12 +80,29 @@ export default function MovieDetailPage({ params }: { params: Promise<{ id: stri
       {/* Player / Banner */}
       <div className={`${theater ? "w-full" : "max-w-[1400px] mx-auto w-full px-6 sm:px-12"}`}>
         {playing ? (
-          <div className={`relative bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5 ${theater ? "h-[85vh] rounded-none" : "aspect-video"}`}>
-            <iframe src={streamUrl} className="w-full h-full border-none" allowFullScreen allow="autoplay; fullscreen" referrerPolicy="no-referrer" />
-            <ClickShield />
-            <button onClick={() => setTheater(!theater)} className="absolute top-3 right-3 z-30 bg-black/60 p-2 rounded-lg text-white/70 hover:text-white cursor-pointer border border-white/10">
-              {theater ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
+          <div className="flex flex-col gap-4 animate-fade-in">
+            <div className={`relative bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5 ${theater ? "h-[85vh] rounded-none" : "aspect-video"}`}>
+              <iframe src={streamUrl} className="w-full h-full border-none" allowFullScreen allow="autoplay; fullscreen" referrerPolicy="no-referrer" />
+              <ClickShield />
+              <button onClick={() => setTheater(!theater)} className="absolute top-3 right-3 z-30 bg-black/60 p-2 rounded-lg text-white/70 hover:text-white cursor-pointer border border-white/10">
+                {theater ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+            </div>
+            {/* Server Switcher */}
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-bold uppercase text-white/40 tracking-wider">Streaming Server</span>
+                <span className="text-xs text-white/60">If video fails to load, try switching servers.</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {SERVERS.map((srv, idx) => (
+                  <button key={idx} onClick={() => setActiveServer(idx)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${activeServer === idx ? "bg-[#e50914] text-white" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"}`}>
+                    {srv.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="relative aspect-video sm:aspect-[21/9] rounded-xl overflow-hidden border border-white/5 group shadow-2xl">
@@ -112,10 +146,16 @@ export default function MovieDetailPage({ params }: { params: Promise<{ id: stri
               <Play size={16} fill="currentColor" /> Watch Now
             </button>
           )}
-          <button onClick={() => toggleWatchlist(movie)} className={`w-full flex items-center justify-center gap-2 font-semibold py-3 rounded-lg transition-all text-sm cursor-pointer ${isBookmarked ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/15"}`}>
-            {isBookmarked ? <Check size={16} strokeWidth={3} /> : <Plus size={16} />}
-            {isBookmarked ? "In Watchlist" : "Add to Watchlist"}
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => toggleWatchlist(movie)} className={`flex-1 flex items-center justify-center gap-2 font-semibold py-3 rounded-lg transition-all text-xs cursor-pointer ${isBookmarked ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/15"}`}>
+              {isBookmarked ? <Check size={14} strokeWidth={3} /> : <Plus size={14} />}
+              {isBookmarked ? "Watchlisted" : "Watchlist"}
+            </button>
+            <button onClick={() => toggleFavorite(movie)} className={`flex-1 flex items-center justify-center gap-2 font-semibold py-3 rounded-lg transition-all text-xs cursor-pointer ${isFavorited ? "bg-red-600 text-white" : "bg-white/10 text-white hover:bg-white/15"}`}>
+              <Heart size={14} fill={isFavorited ? "currentColor" : "none"} className={isFavorited ? "scale-110" : ""} />
+              {isFavorited ? "Liked" : "Favorite"}
+            </button>
+          </div>
         </div>
       </div>
 

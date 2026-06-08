@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Search, Bell, Menu, X, ChevronDown, Award } from "lucide-react";
 import { useStore, AVAILABLE_PROFILES, UserProfile } from "@/store/useStore";
+import ProfileGate from "@/components/ProfileGate";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -43,6 +44,35 @@ export default function Navbar() {
     }
   }, [pathname]);
 
+  // Global keystroke listener for secret sequence "2002"
+  useEffect(() => {
+    let keysPressed: string[] = [];
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      keysPressed.push(e.key);
+      if (keysPressed.length > 4) {
+        keysPressed.shift();
+      }
+
+      if (keysPressed.join("") === "2002") {
+        router.push("/admin");
+        keysPressed = [];
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [router]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -61,15 +91,18 @@ export default function Navbar() {
     { name: "Home", href: "/" },
     { name: "Movies", href: "/search?type=movie" },
     { name: "TV Shows", href: "/search?type=tv" },
+    { name: "Collections", href: "/collections" },
     { name: "My List", href: "/my-list" }
   ];
 
   return (
-    <nav
-      className={`fixed top-0 inset-x-0 h-16 sm:h-20 z-50 transition-all duration-300 ${
-        scrolled ? "glass-nav shadow-lg shadow-black/40" : "bg-gradient-to-b from-black/80 to-transparent"
-      }`}
-    >
+    <>
+      <ProfileGate />
+      <nav
+        className={`fixed top-0 inset-x-0 h-16 sm:h-20 z-50 transition-all duration-300 ${
+          scrolled ? "glass-nav shadow-lg shadow-black/40" : "bg-gradient-to-b from-black/80 to-transparent"
+        }`}
+      >
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-8 flex items-center justify-between">
         
         {/* Left Section: Brand & Nav Links */}
@@ -214,6 +247,7 @@ export default function Navbar() {
           })}
         </div>
       )}
-    </nav>
+      </nav>
+    </>
   );
 }
